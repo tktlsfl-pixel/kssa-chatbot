@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>특판조합 챗봇 관리자</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #1a4b8c; --primary-dark: #0f3567;
+    --accent: #e74c3c; --green: #10b981; --orange: #f59e0b;
+    --bg: #f5f7fb; --card: #ffffff;
+    --text: #1f2937; --text-muted: #6b7280;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+  /* 로그인 */
+  .login-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  }
+  .login-card {
+    background: white; padding: 40px; border-radius: 16px; width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .login-card h1 { color: var(--primary); font-size: 22px; margin-bottom: 6px; }
+  .login-card p { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+  .login-card label { display: block; font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .login-card input {
+    width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; margin-bottom: 16px;
+  }
+  .login-card button {
+    width: 100%; padding: 12px; background: var(--primary); color: white; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .login-card button:hover { background: var(--primary-dark); }
+  .login-error { background: #fee; color: var(--accent); padding: 10px; border-radius: 6px; font-size: 12px; margin-bottom: 12px; }
+  .login-hint { font-size: 11px; color: var(--text-muted); margin-top: 16px; line-height: 1.5; }
+
+  /* 메인 레이아웃 */
+  .layout { display: none; min-height: 100vh; }
+  .layout.active { display: flex; }
+  .nav {
+    width: 240px; background: var(--primary-dark); color: white; flex-shrink: 0;
+    display: flex; flex-direction: column;
+  }
+  .nav-brand { padding: 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .nav-brand .name { font-size: 14px; font-weight: 700; }
+  .nav-brand .sub { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+  .nav-menu { flex: 1; padding: 12px 0; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 11px 18px;
+    cursor: pointer; font-size: 13px; color: rgba(255,255,255,0.8);
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+  .nav-item.active { background: rgba(255,255,255,0.1); border-left-color: white; color: white; font-weight: 600; }
+  .nav-icon { width: 18px; text-align: center; }
+  .nav-bottom { padding: 12px 18px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 11px; opacity: 0.7; }
+  .nav-bottom a { color: white; text-decoration: none; }
+  .nav-bottom a:hover { text-decoration: underline; }
+  .logout-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white;
+    padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; margin-top: 8px;
+  }
+
+  .main { flex: 1; overflow-y: auto; }
+  .topbar {
+    background: white; padding: 14px 28px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .topbar h2 { font-size: 18px; font-weight: 700; }
+  .topbar .actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary { background: white; color: var(--text); border-color: var(--border); }
+  .btn-secondary:hover { background: var(--bg); }
+  .btn-danger { background: var(--accent); color: white; }
+
+  .content { padding: 28px; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  /* 카드/테이블 공통 */
+  .card {
+    background: white; border-radius: 12px; padding: 22px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px;
+  }
+  .card-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+  .card-subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat-card {
+    background: white; border-radius: 12px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 4px solid var(--primary);
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 800; color: var(--primary); }
+  .stat-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .stat-card.green { border-left-color: var(--green); }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.orange { border-left-color: var(--orange); }
+  .stat-card.orange .stat-value { color: var(--orange); }
+  .stat-card.accent { border-left-color: var(--accent); }
+  .stat-card.accent .stat-value { color: var(--accent); }
+
+  .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+  .chart-wrap { position: relative; height: 280px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th { background: var(--bg); font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+  tr:hover td { background: #fafbfd; }
+  .pill { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .pill-blue { background: #dbeafe; color: #1e40af; }
+  .pill-green { background: #d1fae5; color: #065f46; }
+  .pill-purple { background: #ede9fe; color: #5b21b6; }
+
+  .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-row label { font-size: 12px; font-weight: 600; color: var(--text); }
+  .form-row input, .form-row select, .form-row textarea {
+    padding: 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px;
+    font-family: inherit;
+  }
+  .form-row textarea { resize: vertical; font-family: ui-monospace, monospace; line-height: 1.5; }
+
+  .tab-buttons { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 2px solid var(--border); }
+  .tab-buttons button {
+    background: transparent; border: none; padding: 10px 16px; font-size: 13px;
+    cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent;
+    margin-bottom: -2px; font-weight: 600;
+  }
+  .tab-buttons button.active { color: var(--primary); border-color: var(--primary); }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--text);
+    color: white; padding: 12px 18px; border-radius: 8px; font-size: 13px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: translateY(100px); opacity: 0;
+    transition: all 0.3s ease; z-index: 9999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: var(--green); }
+  .toast.error { background: var(--accent); }
+
+  .filter-row { display: flex; gap: 10px; margin-bottom: 14px; align-items: end; }
+  .filter-row .form-row { flex: 1; margin-bottom: 0; }
+
+  .empty {
+    text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px;
+  }
+
+  @media (max-width: 768px) {
+    .nav { width: 60px; }
+    .nav-brand .name, .nav-brand .sub, .nav-item span:not(.nav-icon) { display: none; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 로그인 화면 -->
+<div class="login-wrap" id="login-wrap">
+  <div class="login-card">
+    <h1>🔐 특판조합 챗봇 관리자</h1>
+    <p>관리자 비밀번호를 입력해 주세요</p>
+    <div class="login-error" id="login-error" style="display:none"></div>
+    <label>비밀번호</label>
+    <input type="password" id="login-password" placeholder="••••••••" autofocus>
+    <button id="login-btn">로그인</button>
+    <p class="login-hint">
+      비밀번호는 Vercel 환경변수 <code>ADMIN_PASSWORD</code>에 설정된 값입니다.<br>
+      잊으셨다면 Vercel 대시보드 → Settings → Environment Variables에서 확인/변경 가능합니다.
+    </p>
+  </div>
+</div>
+
+<!-- 메인 레이아웃 -->
+<div class="layout" id="layout">
+  <nav class="nav">
+    <div class="nav-brand">
+      <div class="name">특판조합 챗봇</div>
+      <div class="sub">관리자 콘솔</div>
+    </div>
+    <div class="nav-menu">
+      <div class="nav-item active" data-tab="dashboard"><span class="nav-icon">📊</span><span>대시보드</span></div>
+      <div class="nav-item" data-tab="logs"><span class="nav-icon">💬</span><span>대화 로그</span></div>
+      <div class="nav-item" data-tab="kb"><span class="nav-icon">📚</span><span>지식베이스</span></div>
+      <div class="nav-item" data-tab="faq"><span class="nav-icon">❓</span><span>자주 묻는 질문</span></div>
+      <div class="nav-item" data-tab="settings"><span class="nav-icon">⚙️</span><span>설정</span></div>
+      <div class="nav-item" data-tab="backup"><span class="nav-icon">💾</span><span>백업/복원</span></div>
+    </div>
+    <div class="nav-bottom">
+      <a href="/" target="_blank">🔗 챗봇 페이지 열기</a>
+      <button class="logout-btn" id="logout-btn">로그아웃</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="topbar">
+      <h2 id="page-title">대시보드</h2>
+      <div class="actions">
+        <button class="btn btn-secondary" id="refresh-btn">↻ 새로고침</button>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- 대시보드 -->
+      <div class="tab active" id="tab-dashboard">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">전체 질문 수</div>
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-sub">누적</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">일반 소비자</div>
+            <div class="stat-value" id="stat-consumer">—</div>
+            <div class="stat-sub">건</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-label">회원사 임직원</div>
+            <div class="stat-value" id="stat-member">—</div>
+            <div class="stat-sub">건</div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-label">예상 비용 (누적)</div>
+            <div class="stat-value" id="stat-cost">—</div>
+            <div class="stat-sub">USD (Haiku 기준)</div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-title">📈 일자별 질문 수 (최근 30일)</div>
+            <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🌐 언어별 분포</div>
+            <div class="chart-wrap"><canvas id="chart-lang"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⏱️ 최근 대화 (Top 10)</div>
+          <table id="recent-table">
+            <thead><tr><th>시간</th><th>모드</th><th>언어</th><th>질문</th><th>답변 미리보기</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 대화 로그 -->
+      <div class="tab" id="tab-logs">
+        <div class="card">
+          <div class="filter-row">
+            <div class="form-row">
+              <label>모드 필터</label>
+              <select id="filter-mode"><option value="">전체</option><option value="consumer">일반 소비자</option><option value="member">회원사</option></select>
+            </div>
+            <div class="form-row">
+              <label>언어 필터</label>
+              <select id="filter-lang"><option value="">전체</option><option value="ko">한국어</option><option value="en">English</option><option value="zh">中文</option><option value="ja">日本語</option><option value="vi">Tiếng Việt</option></select>
+            </div>
+            <div class="form-row">
+              <label>검색어 (질문 내용)</label>
+              <input type="text" id="filter-search" placeholder="키워드 입력">
+            </div>
+            <button class="btn btn-secondary" id="apply-filter">필터 적용</button>
+            <button class="btn btn-secondary" id="export-csv">📊 CSV 다운로드</button>
+            <button class="btn btn-danger" id="clear-logs">🗑️ 전체 로그 삭제</button>
+          </div>
+        </div>
+        <div class="card">
+          <table id="logs-table">
+            <thead><tr><th>시간</th><th>모드</th><th>언어</th><th>모델</th><th>질문</th><th>답변 미리보기</th><th>토큰</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="empty" id="logs-empty" style="display:none">로그가 없습니다.</div>
+        </div>
+      </div>
+
+      <!-- 지식베이스 -->
+      <div class="tab" id="tab-kb">
+        <div class="card">
+          <div class="card-title">📚 지식베이스 편집</div>
+          <div class="card-subtitle">아래 텍스트는 챗봇이 답변할 때 시스템 프롬프트로 사용됩니다. 정확한 수치(공제금 한도·청약철회 기간 등)는 그대로 유지하시고, 법령 개정 시 분기마다 갱신해 주세요.</div>
+
+          <div class="tab-buttons">
+            <button class="active" data-kb="consumer">일반 소비자용</button>
+            <button data-kb="member">회원사 임직원용</button>
+          </div>
+
+          <div class="form-row">
+            <textarea id="kb-textarea" rows="28" placeholder="지식베이스 내용을 입력하세요..."></textarea>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12px; color: var(--text-muted);" id="kb-charcount">0자</span>
+            <div>
+              <button class="btn btn-secondary" id="kb-revert">기본값으로 되돌리기</button>
+              <button class="btn btn-primary" id="kb-save">💾 저장 및 즉시 반영</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="tab" id="tab-faq">
+        <div class="card">
+          <div class="card-title">❓ 자주 묻는 질문 편집</div>
+          <div class="card-subtitle">챗봇 좌측 사이드바에 노출되는 빠른 질문 버튼입니다. 각 모드·언어별로 최대 5개를 권장합니다.</div>
+
+          <div class="filter-row">
+            <div class="form-row">
+              <label>모드</label>
+              <select id="faq-mode"><option value="consumer">일반 소비자</option><option value="member">회원사 임직원</option></select>
+            </div>
+            <div class="form-row">
+              <label>언어</label>
+              <select id="faq-lang"><option value="ko">한국어</option><option value="en">English</option><option value="zh">中文</option><option value="ja">日本語</option><option value="vi">Tiếng Việt</option></select>
+            </div>
+          </div>
+
+          <div id="faq-list"></div>
+          <div style="margin-top: 16px;">
+            <button class="btn btn-secondary" id="faq-add">+ 질문 추가</button>
+            <button class="btn btn-primary" id="faq-save" style="float:right">💾 저장</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 설정 -->
+      <div class="tab" id="tab-settings">
+        <div class="card">
+          <div class="card-title">⚙️ 모델 및 응답 설정</div>
+          <div class="form-row">
+            <label>Claude 모델</label>
+            <select id="settings-model">
+              <option value="claude-haiku-4-5-20251001">⚡ Haiku 4.5 — 빠르고 저렴 (시제품/일반 FAQ)</option>
+              <option value="claude-sonnet-4-6">🎯 Sonnet 4.6 — 품질 우수 (법령 해석)</option>
+              <option value="claude-opus-4-6">💎 Opus 4.6 — 최고 품질 (고난도)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>최대 답변 길이 (토큰)</label>
+            <input type="number" id="settings-maxtokens" min="256" max="4096" step="64" value="1024">
+          </div>
+          <div class="form-row">
+            <label>대화 히스토리 유지 턴 수</label>
+            <input type="number" id="settings-history" min="1" max="20" value="5">
+          </div>
+          <div style="text-align:right">
+            <button class="btn btn-primary" id="settings-save">💾 설정 저장</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🛡️ 환경변수 안내 (Vercel 대시보드에서 변경)</div>
+          <table>
+            <tbody>
+              <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Anthropic Console에서 발급받은 sk-ant-... 키. 변경 시 자동 재배포 필요.</td></tr>
+              <tr><td><code>ADMIN_PASSWORD</code></td><td>이 관리자 페이지 로그인 비밀번호. 영문/숫자 8자 이상 권장.</td></tr>
+              <tr><td><code>KV_*</code></td><td>Vercel KV 연결 변수. Storage 탭에서 KV를 프로젝트에 연결하면 자동 등록됨.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 백업 -->
+      <div class="tab" id="tab-backup">
+        <div class="card">
+          <div class="card-title">💾 백업·복원</div>
+          <div class="card-subtitle">지식베이스, FAQ, 설정 전체를 JSON으로 내보내거나 가져옵니다. 정기 백업을 권장합니다 (월 1회).</div>
+          <div style="display: flex; gap: 10px; margin-bottom: 18px;">
+            <button class="btn btn-primary" id="backup-export">📤 전체 설정 JSON 내보내기</button>
+            <input type="file" id="backup-file" accept=".json" style="display:none">
+            <button class="btn btn-secondary" id="backup-import">📥 JSON 파일 가져오기</button>
+            <button class="btn btn-danger" id="backup-reset">⚠️ 기본값으로 초기화</button>
+          </div>
+          <div class="form-row">
+            <label>현재 설정 미리보기 (읽기 전용)</label>
+            <textarea id="backup-preview" rows="16" readonly style="background:#f9fafb"></textarea>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================================================
+   특판조합 챗봇 관리자 페이지
+   - 인증: Vercel 환경변수 ADMIN_PASSWORD와 비교
+   - 백엔드 API: /api/admin (action별 분기)
+   =========================================================== */
+
+const $ = (id) => document.getElementById(id);
+let currentPassword = sessionStorage.getItem("kssa_admin_pwd") || "";
+let chartDaily = null, chartLang = null;
+let allLogs = [];
+let currentConfig = null;
+let currentKbMode = "consumer";
+
+// ── Toast ─────────────────────────────────────
+function toast(msg, type = "") {
+  const el = $("toast");
+  el.textContent = msg;
+  el.className = "toast show " + type;
+  setTimeout(() => el.classList.remove("show"), 2500);
+}
+
+// ── API 호출 헬퍼 ─────────────────────────────
+async function api(action, options = {}) {
+  const url = `/api/admin?action=${action}`;
+  const headers = { "x-admin-password": currentPassword, "content-type": "application/json" };
+  const res = await fetch(url, {
+    method: options.method || "GET",
+    headers,
+    body: options.body ? JSON.stringify({ action, ...options.body }) : undefined
+  });
+  if (res.status === 401) {
+    sessionStorage.removeItem("kssa_admin_pwd");
+    location.reload();
+    throw new Error("인증 실패");
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── 로그인 ────────────────────────────────────
+async function tryLogin(pwd) {
+  currentPassword = pwd;
+  try {
+    const res = await fetch("/api/admin?action=login", {
+      method: "POST",
+      headers: { "x-admin-password": pwd, "content-type": "application/json" },
+      body: JSON.stringify({ action: "login" })
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || "로그인 실패");
+    }
+    sessionStorage.setItem("kssa_admin_pwd", pwd);
+    showLayout();
+  } catch (e) {
+    $("login-error").style.display = "block";
+    $("login-error").textContent = e.message;
+    currentPassword = "";
+  }
+}
+
+function showLayout() {
+  $("login-wrap").style.display = "none";
+  $("layout").classList.add("active");
+  loadAll();
+}
+
+function logout() {
+  sessionStorage.removeItem("kssa_admin_pwd");
+  currentPassword = "";
+  location.reload();
+}
+
+// ── 탭 전환 ───────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll(".nav-item").forEach(i => i.classList.toggle("active", i.dataset.tab === name));
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.id === `tab-${name}`));
+  const titles = { dashboard: "대시보드", logs: "대화 로그", kb: "지식베이스", faq: "자주 묻는 질문", settings: "설정", backup: "백업/복원" };
+  $("page-title").textContent = titles[name] || "";
+
+  if (name === "dashboard") loadDashboard();
+  if (name === "logs") loadLogs();
+  if (name === "kb") loadKb();
+  if (name === "faq") loadFaq();
+  if (name === "settings") loadSettings();
+  if (name === "backup") loadBackup();
+}
+
+// ── 데이터 로드 (전역) ────────────────────────
+async function loadAll() {
+  try {
+    const [cfg] = await Promise.all([api("config")]);
+    currentConfig = cfg.config;
+    loadDashboard();
+  } catch (e) {
+    toast("초기 로드 실패: " + e.message, "error");
+  }
+}
+
+// ── 대시보드 ──────────────────────────────────
+async function loadDashboard() {
+  try {
+    const [summary, daily] = await Promise.all([api("summary"), api("daily&days=30")]);
+    const stats = summary.stats || {};
+    const total = parseInt(stats.total || "0");
+    $("stat-total").textContent = total.toLocaleString();
+    $("stat-consumer").textContent = parseInt(stats["mode:consumer"] || "0").toLocaleString();
+    $("stat-member").textContent = parseInt(stats["mode:member"] || "0").toLocaleString();
+    const inTok = parseInt(stats["tokens:input"] || "0");
+    const outTok = parseInt(stats["tokens:output"] || "0");
+    // Haiku 4.5 기준: $1/M input, $5/M output (대략)
+    const cost = (inTok / 1e6 * 1.0) + (outTok / 1e6 * 5.0);
+    $("stat-cost").textContent = "$" + cost.toFixed(3);
+
+    // 일자별 차트
+    if (chartDaily) chartDaily.destroy();
+    chartDaily = new Chart($("chart-daily"), {
+      type: "line",
+      data: {
+        labels: daily.daily.map(d => d.date.slice(5)),
+        datasets: [{
+          label: "질문 수", data: daily.daily.map(d => d.count),
+          borderColor: "#1a4b8c", backgroundColor: "rgba(26,75,140,0.1)",
+          tension: 0.3, fill: true
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+
+    // 언어 차트
+    if (chartLang) chartLang.destroy();
+    const langs = ["ko","en","zh","ja","vi"];
+    const langLabels = { ko:"한국어",en:"English",zh:"中文",ja:"日本語",vi:"Tiếng Việt" };
+    const langColors = ["#1a4b8c","#10b981","#f59e0b","#e74c3c","#8b5cf6"];
+    chartLang = new Chart($("chart-lang"), {
+      type: "doughnut",
+      data: {
+        labels: langs.map(l => langLabels[l]),
+        datasets: [{ data: langs.map(l => parseInt(stats[`lang:${l}`] || "0")), backgroundColor: langColors }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } } } }
+    });
+
+    // 최근 대화 테이블
+    const tbody = $("recent-table").querySelector("tbody");
+    tbody.innerHTML = "";
+    (summary.recent_logs || []).forEach(log => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${formatTime(log.ts)}</td>
+        <td><span class="pill ${log.mode==="consumer"?"pill-blue":"pill-purple"}">${log.mode==="consumer"?"소비자":"회원사"}</span></td>
+        <td>${log.lang || "-"}</td>
+        <td>${escapeHtml((log.question||"").slice(0,40))}</td>
+        <td>${escapeHtml((log.answer_preview||"").slice(0,60))}…</td>`;
+      tbody.appendChild(tr);
+    });
+  } catch (e) {
+    toast("대시보드 로드 실패: " + e.message, "error");
+  }
+}
+
+// ── 로그 ──────────────────────────────────────
+async function loadLogs() {
+  try {
+    const r = await api("logs&limit=1000");
+    allLogs = r.logs || [];
+    renderLogs();
+  } catch (e) { toast(e.message, "error"); }
+}
+
+function renderLogs() {
+  const fm = $("filter-mode").value;
+  const fl = $("filter-lang").value;
+  const fs = ($("filter-search").value || "").toLowerCase();
+  const filtered = allLogs.filter(l => {
+    if (fm && l.mode !== fm) return false;
+    if (fl && l.lang !== fl) return false;
+    if (fs && !(l.question||"").toLowerCase().includes(fs)) return false;
+    return true;
+  });
+  const tbody = $("logs-table").querySelector("tbody");
+  tbody.innerHTML = "";
+  filtered.forEach(l => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${formatTime(l.ts)}</td>
+      <td><span class="pill ${l.mode==="consumer"?"pill-blue":"pill-purple"}">${l.mode==="consumer"?"소비자":"회원사"}</span></td>
+      <td>${l.lang || "-"}</td>
+      <td><span class="pill pill-green">${(l.model||"").replace("claude-","").slice(0,12)}</span></td>
+      <td>${escapeHtml((l.question||"").slice(0,80))}</td>
+      <td>${escapeHtml((l.answer_preview||"").slice(0,80))}…</td>
+      <td style="font-size:11px; color:#6b7280">${l.input_tokens||0}/${l.output_tokens||0}</td>`;
+    tbody.appendChild(tr);
+  });
+  $("logs-empty").style.display = filtered.length === 0 ? "block" : "none";
+}
+
+function exportCsv() {
+  if (allLogs.length === 0) { toast("로그가 없습니다.", "error"); return; }
+  const headers = ["timestamp","mode","language","model","question","answer_preview","input_tokens","output_tokens"];
+  const escape = v => `"${String(v).replace(/"/g,'""')}"`;
+  const rows = allLogs.map(l => headers.map(h => escape(l[h] ?? l[h.replace("timestamp","ts")] ?? "")).join(","));
+  const csv = "﻿" + headers.join(",") + "\n" + rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `kssa_logs_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ── 지식베이스 ────────────────────────────────
+function loadKb() {
+  if (!currentConfig) return;
+  $("kb-textarea").value = currentConfig.kb?.[currentKbMode] || "";
+  updateCharCount();
+}
+function updateCharCount() { $("kb-charcount").textContent = $("kb-textarea").value.length.toLocaleString() + "자"; }
+
+async function saveKb() {
+  const val = $("kb-textarea").value;
+  try {
+    await api("save_kb", { method: "POST", body: { [currentKbMode]: val } });
+    if (!currentConfig.kb) currentConfig.kb = {};
+    currentConfig.kb[currentKbMode] = val;
+    toast("✅ 지식베이스가 저장되었습니다. 챗봇에 즉시 반영됩니다.", "success");
+  } catch (e) { toast("저장 실패: " + e.message, "error"); }
+}
+
+// ── FAQ ───────────────────────────────────────
+function loadFaq() {
+  if (!currentConfig) return;
+  renderFaqList();
+}
+function renderFaqList() {
+  const m = $("faq-mode").value, l = $("faq-lang").value;
+  const list = currentConfig.faq?.[m]?.[l] || [];
+  const cont = $("faq-list");
+  cont.innerHTML = "";
+  list.forEach((q, i) => addFaqInput(q, i));
+}
+function addFaqInput(q = "", idx) {
+  const div = document.createElement("div");
+  div.className = "form-row";
+  div.style.flexDirection = "row";
+  div.style.gap = "8px";
+  div.style.marginBottom = "8px";
+  div.innerHTML = `
+    <input type="text" value="${q.replace(/"/g,'&quot;')}" placeholder="질문 ${idx+1}" style="flex:1">
+    <button class="btn btn-secondary faq-del" type="button">×</button>`;
+  div.querySelector(".faq-del").onclick = () => div.remove();
+  $("faq-list").appendChild(div);
+}
+async function saveFaq() {
+  const m = $("faq-mode").value, l = $("faq-lang").value;
+  const inputs = $("faq-list").querySelectorAll("input");
+  const arr = Array.from(inputs).map(i => i.value.trim()).filter(v => v);
+  const faq = JSON.parse(JSON.stringify(currentConfig.faq || {}));
+  if (!faq[m]) faq[m] = {};
+  faq[m][l] = arr;
+  try {
+    await api("save_faq", { method: "POST", body: { faq } });
+    currentConfig.faq = faq;
+    toast("✅ FAQ가 저장되었습니다.", "success");
+  } catch (e) { toast("저장 실패: " + e.message, "error"); }
+}
+
+// ── 설정 ──────────────────────────────────────
+function loadSettings() {
+  if (!currentConfig?.settings) return;
+  $("settings-model").value = currentConfig.settings.model || "claude-haiku-4-5-20251001";
+  $("settings-maxtokens").value = currentConfig.settings.maxTokens || 1024;
+  $("settings-history").value = currentConfig.settings.historyTurns || 5;
+}
+async function saveSettings() {
+  const settings = {
+    model: $("settings-model").value,
+    maxTokens: parseInt($("settings-maxtokens").value),
+    historyTurns: parseInt($("settings-history").value)
+  };
+  try {
+    await api("save_settings", { method: "POST", body: { settings } });
+    currentConfig.settings = { ...currentConfig.settings, ...settings };
+    toast("✅ 설정이 저장되었습니다.", "success");
+  } catch (e) { toast("저장 실패: " + e.message, "error"); }
+}
+
+// ── 백업 ──────────────────────────────────────
+function loadBackup() { $("backup-preview").value = JSON.stringify(currentConfig, null, 2); }
+
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(currentConfig, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `kssa_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast("📤 백업 파일이 다운로드되었습니다.", "success");
+}
+
+function importBackup() { $("backup-file").click(); }
+
+async function handleImportFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!confirm("기존 설정을 덮어씁니다. 계속하시겠습니까?")) return;
+  const text = await file.text();
+  try {
+    const data = JSON.parse(text);
+    if (data.kb) await api("save_kb", { method: "POST", body: data.kb });
+    if (data.faq) await api("save_faq", { method: "POST", body: { faq: data.faq } });
+    if (data.settings) await api("save_settings", { method: "POST", body: { settings: data.settings } });
+    toast("✅ 가져오기 완료. 페이지를 새로고침합니다.", "success");
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    toast("가져오기 실패: " + err.message, "error");
+  }
+}
+
+async function resetToDefault() {
+  if (!confirm("⚠️ 모든 설정을 기본값으로 초기화합니다.\n로그는 유지됩니다. 계속하시겠습니까?")) return;
+  try {
+    await api("reset", { method: "POST", body: {} });
+    toast("✅ 초기화 완료. 페이지를 새로고침합니다.", "success");
+    setTimeout(() => location.reload(), 1500);
+  } catch (e) { toast("초기화 실패: " + e.message, "error"); }
+}
+
+async function clearAllLogs() {
+  if (!confirm("⚠️ 모든 채팅 로그를 삭제합니다. 통계는 유지됩니다.\n계속하시겠습니까?")) return;
+  try {
+    await api("clear_logs", { method: "POST", body: {} });
+    toast("✅ 로그가 삭제되었습니다.", "success");
+    loadLogs();
+  } catch (e) { toast(e.message, "error"); }
+}
+
+// ── 유틸 ──────────────────────────────────────
+function formatTime(iso) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  return d.toLocaleString("ko-KR", { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// ── 부팅 ──────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  // 로그인
+  $("login-btn").addEventListener("click", () => tryLogin($("login-password").value));
+  $("login-password").addEventListener("keydown", e => { if (e.key === "Enter") tryLogin($("login-password").value); });
+  $("logout-btn").addEventListener("click", logout);
+
+  // 탭 메뉴
+  document.querySelectorAll(".nav-item").forEach(i => i.addEventListener("click", () => switchTab(i.dataset.tab)));
+  $("refresh-btn").addEventListener("click", () => {
+    const active = document.querySelector(".nav-item.active").dataset.tab;
+    loadAll().then(() => switchTab(active));
+    toast("새로고침 완료", "success");
+  });
+
+  // KB
+  document.querySelectorAll(".tab-buttons button[data-kb]").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".tab-buttons button[data-kb]").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    currentKbMode = b.dataset.kb;
+    loadKb();
+  }));
+  $("kb-textarea").addEventListener("input", updateCharCount);
+  $("kb-save").addEventListener("click", saveKb);
+  $("kb-revert").addEventListener("click", async () => {
+    if (!confirm("이 모드의 지식베이스를 기본값으로 되돌립니다. 계속하시겠습니까?")) return;
+    // 서버에 저장된 기본값 가져오기 = reset 후 reload 가 가장 깔끔하지만, 한 모드만 되돌리고 싶으면 백업/복원 사용 권장
+    toast("⚠️ 한 모드만 기본값 복원은 백업/복원 탭의 ‘기본값으로 초기화’를 사용해 주세요.", "");
+  });
+
+  // FAQ
+  $("faq-mode").addEventListener("change", renderFaqList);
+  $("faq-lang").addEventListener("change", renderFaqList);
+  $("faq-add").addEventListener("click", () => addFaqInput("", $("faq-list").children.length));
+  $("faq-save").addEventListener("click", saveFaq);
+
+  // 로그
+  $("apply-filter").addEventListener("click", renderLogs);
+  $("filter-search").addEventListener("input", () => clearTimeout(window.__t) || (window.__t = setTimeout(renderLogs, 300)));
+  $("export-csv").addEventListener("click", exportCsv);
+  $("clear-logs").addEventListener("click", clearAllLogs);
+
+  // 설정
+  $("settings-save").addEventListener("click", saveSettings);
+
+  // 백업
+  $("backup-export").addEventListener("click", exportBackup);
+  $("backup-import").addEventListener("click", importBackup);
+  $("backup-file").addEventListener("change", handleImportFile);
+  $("backup-reset").addEventListener("click", resetToDefault);
+
+  // 자동 로그인
+  if (currentPassword) {
+    fetch("/api/admin?action=login", {
+      method: "POST",
+      headers: { "x-admin-password": currentPassword, "content-type": "application/json" },
+      body: JSON.stringify({ action: "login" })
+    }).then(r => r.ok ? showLayout() : (sessionStorage.removeItem("kssa_admin_pwd"), null));
+  }
+});
+</script>
+</body>
+</html>

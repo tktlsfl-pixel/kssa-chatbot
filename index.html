@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국특수판매공제조합(특판조합) AI 챗봇</title>
+<style>
+  :root {
+    --primary: #1a4b8c;
+    --primary-dark: #0f3567;
+    --accent: #e74c3c;
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --text: #1f2937;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --user-bubble: #1a4b8c;
+    --bot-bubble: #f1f3f8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-logo {
+    width: 36px; height: 36px; background: white; color: var(--primary);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px;
+  }
+  .brand-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
+  .brand-sub { font-size: 11px; opacity: 0.85; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .header-actions select, .header-actions button {
+    background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);
+    padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;
+  }
+  .header-actions select option { color: var(--text); }
+  .header-actions button:hover { background: rgba(255,255,255,0.25); }
+
+  .container { flex: 1; display: flex; overflow: hidden; }
+
+  .sidebar {
+    width: 260px; background: var(--card); border-right: 1px solid var(--border);
+    padding: 18px; overflow-y: auto; flex-shrink: 0; transition: margin-left 0.3s ease;
+  }
+  .sidebar.hidden { margin-left: -260px; }
+  body.demo-mode .disclaimer { display: none; }
+
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.5px; }
+  .mode-toggle { display: flex; gap: 6px; margin-bottom: 18px; }
+  .mode-btn {
+    flex: 1; padding: 10px; border: 2px solid var(--border); background: white; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .mode-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
+  .quick-questions { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  .quick-btn {
+    text-align: left; padding: 9px 12px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; font-size: 12.5px; cursor: pointer; color: var(--text);
+  }
+  .quick-btn:hover { background: #e8edf5; border-color: var(--primary); }
+
+  .chat-area { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
+  .messages { flex: 1; overflow-y: auto; padding: 24px; }
+  .msg { display: flex; gap: 10px; margin-bottom: 16px; max-width: 760px; }
+  .msg.user { flex-direction: row-reverse; margin-left: auto; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
+  }
+  .msg.bot .avatar { background: var(--primary); color: white; }
+  .msg.user .avatar { background: #d1d5db; color: var(--text); }
+  .bubble {
+    padding: 12px 16px; border-radius: 14px; font-size: 14px; line-height: 1.6;
+    max-width: 600px; word-wrap: break-word; white-space: pre-wrap;
+  }
+  .msg.bot .bubble { background: var(--bot-bubble); border-top-left-radius: 4px; }
+  .msg.user .bubble { background: var(--user-bubble); color: white; border-top-right-radius: 4px; }
+
+  .typing { display: inline-block; }
+  .typing span {
+    display: inline-block; width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%;
+    margin: 0 1px; animation: typing 1.4s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing { 0%, 60%, 100% { opacity: 0.3; } 30% { opacity: 1; } }
+
+  .input-area { padding: 16px 24px; background: white; border-top: 1px solid var(--border); }
+  .input-wrap {
+    display: flex; gap: 8px; max-width: 900px; margin: 0 auto;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 6px;
+  }
+  .input-wrap textarea {
+    flex: 1; border: none; background: transparent; resize: none; padding: 10px;
+    font-size: 14px; font-family: inherit; outline: none; max-height: 120px;
+  }
+  .send-btn {
+    background: var(--primary); color: white; border: none; padding: 10px 18px;
+    border-radius: 8px; font-weight: 600; cursor: pointer; align-self: flex-end;
+  }
+  .send-btn:hover { background: var(--primary-dark); }
+  .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .disclaimer { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 6px; }
+
+  .welcome-card {
+    background: white; border-radius: 12px; padding: 24px; max-width: 760px;
+    margin: 20px auto; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .welcome-card h2 { color: var(--primary); margin-bottom: 8px; font-size: 18px; }
+  .welcome-card p { color: var(--text-muted); font-size: 13.5px; line-height: 1.7; }
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .feature-item {
+    background: var(--bg); padding: 10px 12px; border-radius: 8px; font-size: 12.5px;
+    border-left: 3px solid var(--primary);
+  }
+
+  @media (max-width: 768px) {
+    .sidebar { width: 100%; max-height: 220px; }
+    .container { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-logo">특판</div>
+    <div>
+      <div class="brand-name" id="header-title">한국특수판매공제조합 AI 챗봇</div>
+      <div class="brand-sub" id="header-sub">특판조합 통합안내 어시스턴트</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span id="model-badge" style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;" title="현재 사용 중인 Claude 모델">⚡</span>
+    <button id="sidebar-toggle" title="사이드바 토글">☰</button>
+    <button id="fullscreen-btn" title="전체화면">⛶</button>
+    <select id="lang-select" title="언어 선택">
+      <option value="ko">🇰🇷 한국어</option>
+      <option value="en">🇺🇸 English</option>
+      <option value="zh">🇨🇳 中文</option>
+      <option value="ja">🇯🇵 日本語</option>
+      <option value="vi">🇻🇳 Tiếng Việt</option>
+    </select>
+  </div>
+</header>
+
+<div class="container">
+  <aside class="sidebar">
+    <div class="section-title" id="label-mode">사용자 모드</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="consumer" id="btn-consumer">일반 소비자</button>
+      <button class="mode-btn" data-mode="member" id="btn-member">회원사 임직원</button>
+    </div>
+
+    <div class="section-title" id="label-quick">자주 묻는 질문</div>
+    <div class="quick-questions" id="quick-list"></div>
+
+    <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); line-height: 1.6;">
+      💡 본 챗봇은 한국특수판매공제조합(특판조합)이 운영하는 AI 안내 서비스입니다. 답변은 참고용이며 정확한 사실관계는 공식 홈페이지·고객센터로 확인해 주세요.
+    </div>
+  </aside>
+
+  <main class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome-card">
+        <h2 id="welcome-title">안녕하세요! 한국특수판매공제조합(특판조합) AI 안내 챗봇입니다.</h2>
+        <p id="welcome-desc">
+          공제금 신청 절차, 청약철회, 다단계 등록업체 조회, 불법피라미드 신고 등 궁금한 점을 편하게 물어봐 주세요. 회원사 임직원이시라면 좌측에서 모드를 전환해 주세요.
+        </p>
+        <div class="feature-grid">
+          <div class="feature-item">💼 공제금 신청·지급 절차</div>
+          <div class="feature-item">🔍 다단계 등록업체 조회</div>
+          <div class="feature-item">⚖️ 청약철회·반품 기간</div>
+          <div class="feature-item">🚨 불법피라미드 신고포상</div>
+          <div class="feature-item">🌐 다국어 지원 (5개 언어)</div>
+          <div class="feature-item">📊 회원사 법령·지침 안내</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="user-input" rows="1" placeholder="궁금한 점을 입력하세요. 예) 청약철회는 며칠 안에 해야 하나요?"></textarea>
+        <button class="send-btn" id="send-btn">전송</button>
+      </div>
+      <div class="disclaimer" id="disclaimer">
+        본 답변은 AI에 의한 참고용 정보이며, 정확한 사실관계는 특판조합 공식 홈페이지·고객센터로 확인해 주세요.
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ===========================================================
+   한국특수판매공제조합(특판조합) AI 챗봇 — 운영용 (Vercel)
+   - 백엔드 API: /api/chat (Claude 호출), /api/config (FAQ 로드)
+   - API 키는 서버 환경변수에 저장되어 사용자에게 노출되지 않음
+   - 지식베이스/FAQ/모델은 관리자 페이지(/admin)에서 편집 가능
+   =========================================================== */
+
+const I18N = {
+  ko: {
+    headerTitle: "한국특수판매공제조합 AI 챗봇",
+    headerSub: "특판조합 통합안내 어시스턴트",
+    labelMode: "사용자 모드", labelQuick: "자주 묻는 질문",
+    consumer: "일반 소비자", member: "회원사 임직원",
+    welcomeTitle: "안녕하세요! 한국특수판매공제조합(특판조합) AI 안내 챗봇입니다.",
+    welcomeDesc: "공제금 신청 절차, 청약철회, 다단계 등록업체 조회, 불법피라미드 신고 등 궁금한 점을 편하게 물어봐 주세요. 회원사 임직원이시라면 좌측에서 모드를 전환해 주세요.",
+    placeholder: "궁금한 점을 입력하세요. 예) 청약철회는 며칠 안에 해야 하나요?",
+    send: "전송",
+    disclaimer: "본 답변은 AI에 의한 참고용 정보이며, 정확한 사실관계는 특판조합 공식 홈페이지·고객센터로 확인해 주세요.",
+    errorApi: "오류: "
+  },
+  en: {
+    headerTitle: "KSSA AI Chatbot",
+    headerSub: "Korea Special Sales Mutual Aid Association Assistant",
+    labelMode: "User Mode", labelQuick: "FAQ",
+    consumer: "Consumer", member: "Member Co. Staff",
+    welcomeTitle: "Hello! I am the AI assistant for the Korea Special Sales Mutual Aid Association (특판조합 / KSSA).",
+    welcomeDesc: "Ask anything about mutual aid claims, withdrawal periods, registered company lookup, illegal pyramid reports, and more. Member company staff can switch modes on the left.",
+    placeholder: "Type your question. e.g., How many days do I have to withdraw?",
+    send: "Send",
+    disclaimer: "This is AI-generated reference information. Please verify exact facts with the official KSSA website or call center.",
+    errorApi: "Error: "
+  },
+  zh: {
+    headerTitle: "韩国特殊销售共济组合 AI 聊天机器人",
+    headerSub: "特判组合综合咨询助手",
+    labelMode: "用户模式", labelQuick: "常见问题",
+    consumer: "普通消费者", member: "会员公司员工",
+    welcomeTitle: "您好!这里是韩国特殊销售共济组合(特判组合)的AI咨询机器人。",
+    welcomeDesc: "关于共济金申请、退订期限、传销公司查询、非法金字塔举报等问题,请随时咨询。会员公司员工可在左侧切换模式。",
+    placeholder: "请输入您的问题。例如:退订期限是几天?",
+    send: "发送",
+    disclaimer: "本答复为AI生成的参考信息。准确事实请通过特判组合官网或客服中心确认。",
+    errorApi: "错误: "
+  },
+  ja: {
+    headerTitle: "韓国特殊販売共済組合 AI チャットボット",
+    headerSub: "特販組合 統合案内アシスタント",
+    labelMode: "ユーザーモード", labelQuick: "よくある質問",
+    consumer: "一般消費者", member: "会員社職員",
+    welcomeTitle: "こんにちは!韓国特殊販売共済組合(特販組合)のAIアシスタントです。",
+    welcomeDesc: "共済金申請手続き、契約解除、マルチ商法登録業者の照会、違法ピラミッド通報など、お気軽にご質問ください。",
+    placeholder: "ご質問を入力してください。例)契約解除は何日以内ですか?",
+    send: "送信",
+    disclaimer: "本回答はAIによる参考情報です。正確な事実は特販組合公式サイト・カスタマーセンターでご確認ください。",
+    errorApi: "エラー: "
+  },
+  vi: {
+    headerTitle: "AI Chatbot KSSA Hàn Quốc",
+    headerSub: "Trợ lý hướng dẫn 특판조합",
+    labelMode: "Chế độ", labelQuick: "Câu hỏi thường gặp",
+    consumer: "Người tiêu dùng", member: "Nhân viên công ty thành viên",
+    welcomeTitle: "Xin chào! Tôi là trợ lý AI của Hiệp hội Tương trợ Bán hàng Đặc biệt Hàn Quốc (특판조합).",
+    welcomeDesc: "Hãy hỏi về thủ tục yêu cầu tiền tương trợ, thời hạn rút yêu cầu, tra cứu công ty đa cấp đã đăng ký, báo cáo kim tự tháp bất hợp pháp v.v.",
+    placeholder: "Nhập câu hỏi của bạn. VD: Thời hạn rút yêu cầu là bao nhiêu ngày?",
+    send: "Gửi",
+    disclaimer: "Đây là thông tin tham khảo do AI tạo. Vui lòng xác nhận thông tin chính xác trên website chính thức của 특판조합.",
+    errorApi: "Lỗi: "
+  }
+};
+
+let state = {
+  mode: "consumer",
+  lang: "ko",
+  history: [],
+  faq: null,
+  modelLabel: "⚡"
+};
+
+const $ = (id) => document.getElementById(id);
+
+async function loadConfig() {
+  try {
+    const res = await fetch("/api/config");
+    if (!res.ok) throw new Error("config load failed");
+    const data = await res.json();
+    state.faq = data.faq;
+    const m = data.settings?.model || "";
+    state.modelLabel = m.includes("haiku") ? "⚡ Haiku 4.5"
+                     : m.includes("sonnet") ? "🎯 Sonnet 4.6"
+                     : m.includes("opus") ? "💎 Opus 4.6" : "⚡";
+    $("model-badge").textContent = state.modelLabel;
+  } catch (e) {
+    console.warn("Config load failed, using defaults:", e);
+    // 기본 FAQ
+    state.faq = { consumer: { ko: ["공제금 신청 절차가 어떻게 되나요?","청약철회는 며칠 안에 해야 하나요?"] }, member: { ko: ["방판법 제18조 환급 의무를 알려주세요"] } };
+  }
+}
+
+function applyLanguage(lang) {
+  state.lang = lang;
+  const t = I18N[lang];
+  $("header-title").textContent = t.headerTitle;
+  $("header-sub").textContent = t.headerSub;
+  $("label-mode").textContent = t.labelMode;
+  $("label-quick").textContent = t.labelQuick;
+  $("btn-consumer").textContent = t.consumer;
+  $("btn-member").textContent = t.member;
+  $("welcome-title").textContent = t.welcomeTitle;
+  $("welcome-desc").textContent = t.welcomeDesc;
+  $("user-input").placeholder = t.placeholder;
+  $("send-btn").textContent = t.send;
+  $("disclaimer").textContent = t.disclaimer;
+  renderQuickQuestions();
+}
+
+function renderQuickQuestions() {
+  const list = state.faq?.[state.mode]?.[state.lang] || state.faq?.[state.mode]?.ko || [];
+  const c = $("quick-list");
+  c.innerHTML = "";
+  list.forEach(q => {
+    const btn = document.createElement("button");
+    btn.className = "quick-btn";
+    btn.textContent = q;
+    btn.onclick = () => { $("user-input").value = q; sendMessage(); };
+    c.appendChild(btn);
+  });
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+  renderQuickQuestions();
+}
+
+function appendMessage(role, text) {
+  const msg = document.createElement("div");
+  msg.className = "msg " + role;
+  const avatar = role === "user" ? "👤" : "🤖";
+  msg.innerHTML = `<div class="avatar">${avatar}</div><div class="bubble"></div>`;
+  msg.querySelector(".bubble").textContent = text;
+  $("messages").appendChild(msg);
+  $("messages").scrollTop = $("messages").scrollHeight;
+  return msg.querySelector(".bubble");
+}
+
+function showTyping() {
+  const msg = document.createElement("div");
+  msg.className = "msg bot"; msg.id = "typing-indicator";
+  msg.innerHTML = `<div class="avatar">🤖</div><div class="bubble"><span class="typing"><span></span><span></span><span></span></span></div>`;
+  $("messages").appendChild(msg);
+  $("messages").scrollTop = $("messages").scrollHeight;
+}
+
+function removeTyping() { const t = $("typing-indicator"); if (t) t.remove(); }
+
+async function callBackend(userText) {
+  state.history.push({ role: "user", content: userText });
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ messages: state.history, mode: state.mode, lang: state.lang })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.reply;
+}
+
+async function sendMessage() {
+  const input = $("user-input");
+  const text = input.value.trim();
+  if (!text) return;
+  appendMessage("user", text);
+  input.value = "";
+  $("send-btn").disabled = true;
+  showTyping();
+  try {
+    const reply = await callBackend(text);
+    removeTyping();
+    appendMessage("bot", reply);
+    state.history.push({ role: "assistant", content: reply });
+  } catch (err) {
+    removeTyping();
+    appendMessage("bot", I18N[state.lang].errorApi + err.message);
+  } finally {
+    $("send-btn").disabled = false;
+  }
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+  document.querySelectorAll(".mode-btn").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  $("lang-select").addEventListener("change", e => applyLanguage(e.target.value));
+  $("send-btn").addEventListener("click", sendMessage);
+  $("user-input").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  $("user-input").addEventListener("input", e => {
+    e.target.style.height = "auto";
+    e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+  });
+  $("sidebar-toggle").addEventListener("click", () => document.querySelector(".sidebar").classList.toggle("hidden"));
+  $("fullscreen-btn").addEventListener("click", () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    else document.exitFullscreen();
+  });
+
+  // ?demo=1 → 시연 모드
+  const params = new URLSearchParams(location.search);
+  if (params.get("demo") === "1") {
+    document.body.classList.add("demo-mode");
+    document.querySelector(".sidebar").classList.add("hidden");
+  }
+
+  await loadConfig();
+  applyLanguage("ko");
+});
+</script>
+</body>
+</html>
