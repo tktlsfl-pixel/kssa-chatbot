@@ -110,16 +110,11 @@
   .disclaimer { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 6px; }
 
   .welcome-card {
-    background: white; border-radius: 12px; padding: 24px; max-width: 760px;
-    margin: 20px auto; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    background: white; border-radius: 14px; padding: 28px 32px; max-width: 560px;
+    margin: 28px auto 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); text-align: center;
   }
-  .welcome-card h2 { color: var(--primary); margin-bottom: 8px; font-size: 18px; }
-  .welcome-card p { color: var(--text-muted); font-size: 13.5px; line-height: 1.7; }
-  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-  .feature-item {
-    background: var(--bg); padding: 10px 12px; border-radius: 8px; font-size: 12.5px;
-    border-left: 3px solid var(--primary);
-  }
+  .welcome-card h2 { color: var(--primary); margin-bottom: 10px; font-size: 20px; }
+  .welcome-card p { color: var(--text-muted); font-size: 14px; line-height: 1.7; }
 
   @media (max-width: 768px) {
     .sidebar { width: 100%; max-height: 220px; }
@@ -138,7 +133,7 @@
     </div>
   </div>
   <div class="header-actions">
-    <span id="model-badge" style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;" title="현재 사용 중인 Claude 모델">⚡</span>
+    <span id="model-badge" style="display: none;" title="현재 사용 중인 Claude 모델"></span>
     <button id="sidebar-toggle" title="사이드바 토글">☰</button>
     <button id="fullscreen-btn" title="전체화면">⛶</button>
     <select id="lang-select" title="언어 선택">
@@ -162,26 +157,16 @@
     <div class="section-title" id="label-quick">자주 묻는 질문</div>
     <div class="quick-questions" id="quick-list"></div>
 
-    <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); line-height: 1.6;">
-      💡 본 챗봇은 한국특수판매공제조합(특판조합)이 운영하는 AI 안내 서비스입니다. 답변은 참고용이며 정확한 사실관계는 공식 홈페이지·고객센터로 확인해 주세요.
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); line-height: 1.6;">
+      답변은 AI 참고용이며, 정확한 사실관계는 <a href="https://www.kssa.or.kr" target="_blank" style="color:var(--primary)">특판조합 공식 홈페이지</a>·고객센터로 확인해 주세요.
     </div>
   </aside>
 
   <main class="chat-area">
     <div class="messages" id="messages">
       <div class="welcome-card">
-        <h2 id="welcome-title">안녕하세요! 한국특수판매공제조합(특판조합) AI 안내 챗봇입니다.</h2>
-        <p id="welcome-desc">
-          공제금 신청 절차, 청약철회, 다단계 등록업체 조회, 불법피라미드 신고 등 궁금한 점을 편하게 물어봐 주세요. 회원사 임직원이시라면 좌측에서 모드를 전환해 주세요.
-        </p>
-        <div class="feature-grid">
-          <div class="feature-item">💼 공제금 신청·지급 절차</div>
-          <div class="feature-item">🔍 다단계 등록업체 조회</div>
-          <div class="feature-item">⚖️ 청약철회·반품 기간</div>
-          <div class="feature-item">🚨 불법피라미드 신고포상</div>
-          <div class="feature-item">🌐 다국어 지원 (5개 언어)</div>
-          <div class="feature-item">📊 회원사 법령·지침 안내</div>
-        </div>
+        <h2 id="welcome-title">안녕하세요 👋</h2>
+        <p id="welcome-desc">한국특수판매공제조합(특판조합) AI 안내입니다.<br>아래 입력창에 질문하시거나, 좌측 자주 묻는 질문을 클릭해 주세요.</p>
       </div>
     </div>
 
@@ -190,9 +175,7 @@
         <textarea id="user-input" rows="1" placeholder="궁금한 점을 입력하세요. 예) 청약철회는 며칠 안에 해야 하나요?"></textarea>
         <button class="send-btn" id="send-btn">전송</button>
       </div>
-      <div class="disclaimer" id="disclaimer">
-        본 답변은 AI에 의한 참고용 정보이며, 정확한 사실관계는 특판조합 공식 홈페이지·고객센터로 확인해 주세요.
-      </div>
+      <div class="disclaimer" id="disclaimer" style="display: none;"></div>
     </div>
   </main>
 </div>
@@ -211,8 +194,8 @@ const I18N = {
     headerSub: "특판조합 통합안내 어시스턴트",
     labelMode: "사용자 모드", labelQuick: "자주 묻는 질문",
     consumer: "일반 소비자", member: "회원사 임직원",
-    welcomeTitle: "안녕하세요! 한국특수판매공제조합(특판조합) AI 안내 챗봇입니다.",
-    welcomeDesc: "공제금 신청 절차, 청약철회, 다단계 등록업체 조회, 불법피라미드 신고 등 궁금한 점을 편하게 물어봐 주세요. 회원사 임직원이시라면 좌측에서 모드를 전환해 주세요.",
+    welcomeTitle: "안녕하세요 👋",
+    welcomeDesc: "한국특수판매공제조합(특판조합) AI 안내입니다.<br>아래 입력창에 질문하시거나, 좌측 자주 묻는 질문을 클릭해 주세요.",
     placeholder: "궁금한 점을 입력하세요. 예) 청약철회는 며칠 안에 해야 하나요?",
     send: "전송",
     disclaimer: "본 답변은 AI에 의한 참고용 정보이며, 정확한 사실관계는 특판조합 공식 홈페이지·고객센터로 확인해 주세요.",
@@ -223,8 +206,8 @@ const I18N = {
     headerSub: "Korea Special Sales Mutual Aid Association Assistant",
     labelMode: "User Mode", labelQuick: "FAQ",
     consumer: "Consumer", member: "Member Co. Staff",
-    welcomeTitle: "Hello! I am the AI assistant for the Korea Special Sales Mutual Aid Association (특판조합 / KSSA).",
-    welcomeDesc: "Ask anything about mutual aid claims, withdrawal periods, registered company lookup, illegal pyramid reports, and more. Member company staff can switch modes on the left.",
+    welcomeTitle: "Hello 👋",
+    welcomeDesc: "AI assistant for Korea Special Sales Mutual Aid Association (특판조합).<br>Type your question below, or pick from FAQ on the left.",
     placeholder: "Type your question. e.g., How many days do I have to withdraw?",
     send: "Send",
     disclaimer: "This is AI-generated reference information. Please verify exact facts with the official KSSA website or call center.",
@@ -235,8 +218,8 @@ const I18N = {
     headerSub: "特判组合综合咨询助手",
     labelMode: "用户模式", labelQuick: "常见问题",
     consumer: "普通消费者", member: "会员公司员工",
-    welcomeTitle: "您好!这里是韩国特殊销售共济组合(特判组合)的AI咨询机器人。",
-    welcomeDesc: "关于共济金申请、退订期限、传销公司查询、非法金字塔举报等问题,请随时咨询。会员公司员工可在左侧切换模式。",
+    welcomeTitle: "您好 👋",
+    welcomeDesc: "韩国特殊销售共济组合(特判组合) AI咨询。<br>请在下方输入问题,或点击左侧常见问题。",
     placeholder: "请输入您的问题。例如:退订期限是几天?",
     send: "发送",
     disclaimer: "本答复为AI生成的参考信息。准确事实请通过特判组合官网或客服中心确认。",
@@ -247,8 +230,8 @@ const I18N = {
     headerSub: "特販組合 統合案内アシスタント",
     labelMode: "ユーザーモード", labelQuick: "よくある質問",
     consumer: "一般消費者", member: "会員社職員",
-    welcomeTitle: "こんにちは!韓国特殊販売共済組合(特販組合)のAIアシスタントです。",
-    welcomeDesc: "共済金申請手続き、契約解除、マルチ商法登録業者の照会、違法ピラミッド通報など、お気軽にご質問ください。",
+    welcomeTitle: "こんにちは 👋",
+    welcomeDesc: "韓国特殊販売共済組合(特販組合) AIアシスタントです。<br>下の入力欄にご質問いただくか、左のFAQをクリックしてください。",
     placeholder: "ご質問を入力してください。例)契約解除は何日以内ですか?",
     send: "送信",
     disclaimer: "本回答はAIによる参考情報です。正確な事実は特販組合公式サイト・カスタマーセンターでご確認ください。",
@@ -259,8 +242,8 @@ const I18N = {
     headerSub: "Trợ lý hướng dẫn 특판조합",
     labelMode: "Chế độ", labelQuick: "Câu hỏi thường gặp",
     consumer: "Người tiêu dùng", member: "Nhân viên công ty thành viên",
-    welcomeTitle: "Xin chào! Tôi là trợ lý AI của Hiệp hội Tương trợ Bán hàng Đặc biệt Hàn Quốc (특판조합).",
-    welcomeDesc: "Hãy hỏi về thủ tục yêu cầu tiền tương trợ, thời hạn rút yêu cầu, tra cứu công ty đa cấp đã đăng ký, báo cáo kim tự tháp bất hợp pháp v.v.",
+    welcomeTitle: "Xin chào 👋",
+    welcomeDesc: "Trợ lý AI của Hiệp hội Tương trợ Bán hàng Đặc biệt Hàn Quốc (특판조합).<br>Nhập câu hỏi ở dưới hoặc chọn từ FAQ bên trái.",
     placeholder: "Nhập câu hỏi của bạn. VD: Thời hạn rút yêu cầu là bao nhiêu ngày?",
     send: "Gửi",
     disclaimer: "Đây là thông tin tham khảo do AI tạo. Vui lòng xác nhận thông tin chính xác trên website chính thức của 특판조합.",
@@ -288,7 +271,8 @@ async function loadConfig() {
     state.modelLabel = m.includes("haiku") ? "⚡ Haiku 4.5"
                      : m.includes("sonnet") ? "🎯 Sonnet 4.6"
                      : m.includes("opus") ? "💎 Opus 4.6" : "⚡";
-    $("model-badge").textContent = state.modelLabel;
+    const badge = $("model-badge");
+    if (badge) badge.textContent = state.modelLabel;
   } catch (e) {
     console.warn("Config load failed, using defaults:", e);
     // 기본 FAQ
@@ -306,10 +290,10 @@ function applyLanguage(lang) {
   $("btn-consumer").textContent = t.consumer;
   $("btn-member").textContent = t.member;
   $("welcome-title").textContent = t.welcomeTitle;
-  $("welcome-desc").textContent = t.welcomeDesc;
+  $("welcome-desc").innerHTML = t.welcomeDesc;
   $("user-input").placeholder = t.placeholder;
   $("send-btn").textContent = t.send;
-  $("disclaimer").textContent = t.disclaimer;
+  // disclaimer 영역은 숨김 처리되어 있어 굳이 텍스트를 갱신하지 않음
   renderQuickQuestions();
 }
 
