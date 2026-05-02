@@ -1,11 +1,10 @@
 {
   "name": "kssa-chatbot",
   "version": "1.0.0",
-  "description": "한국특수판매공제조합(특판조합) AI 챗봇 - Vercel 배포용",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=18"
-  },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.27.
+    "@anthropic-ai/sdk": "latest",
+    "@vercel/kv": "latest"
+  }
+}
