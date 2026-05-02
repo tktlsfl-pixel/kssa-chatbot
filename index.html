@@ -25,9 +25,10 @@
   header {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: white; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
-  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand > div { min-width: 0; }
   .brand-logo {
     width: 36px; height: 36px; background: white; color: var(--primary);
     border-radius: 8px; display: flex; align-items: center; justify-content: center;
@@ -117,8 +118,49 @@
   .welcome-card p { color: var(--text-muted); font-size: 14px; line-height: 1.7; }
 
   @media (max-width: 768px) {
-    .sidebar { width: 100%; max-height: 220px; }
+    /* 컨테이너: 세로 정렬 */
     .container { flex-direction: column; }
+
+    /* 헤더 압축 */
+    header { padding: 8px 12px; gap: 6px; }
+    .brand { gap: 8px; min-width: 0; flex: 1; }
+    .brand-logo { width: 30px; height: 30px; font-size: 11px; flex-shrink: 0; }
+    .brand-name {
+      font-size: 13px; line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .brand-sub { display: none; }   /* 부제 숨김으로 한 줄 확보 */
+
+    /* 헤더 버튼 압축 */
+    .header-actions { gap: 4px; flex-shrink: 0; }
+    .header-actions select,
+    .header-actions button {
+      padding: 5px 8px; font-size: 11px;
+    }
+    .header-actions select { max-width: 110px; }
+    #fullscreen-btn { display: none; }   /* 모바일은 풀스크린 버튼 숨김 */
+
+    /* 사이드바: 상단 컴팩트 */
+    .sidebar { width: 100%; max-height: 240px; padding: 12px 14px; }
+    .section-title { margin-bottom: 8px; }
+    .mode-toggle { margin-bottom: 12px; }
+    .mode-btn { padding: 8px; font-size: 12px; }
+    .quick-questions { margin-bottom: 12px; }
+    .quick-btn { padding: 8px 10px; font-size: 12px; }
+
+    /* 메시지/환영 카드 */
+    .messages { padding: 14px; }
+    .welcome-card { padding: 20px 18px; margin: 16px 4px; max-width: 100%; }
+    .welcome-card h2 { font-size: 17px; }
+    .welcome-card p { font-size: 13px; }
+
+    /* 입력 영역 */
+    .input-area { padding: 12px 14px; }
+    .input-wrap textarea { font-size: 14px; padding: 8px; }
+    .send-btn { padding: 8px 14px; font-size: 13px; }
+
+    /* 채팅 버블 */
+    .bubble { font-size: 13.5px; padding: 10px 14px; max-width: calc(100vw - 80px); }
   }
 </style>
 </head>
